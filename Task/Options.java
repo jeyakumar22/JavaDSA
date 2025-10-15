@@ -1,5 +1,5 @@
 package Task;
 
-public enum Options{
-    WITHDRAW , DEPOSIT,CHECK_BALANCE,APPLYINTEREST_OR_REMININGLIMIT,EXIT
+public enum Options {
+    CREATEACCOUNT,ACCESSSACCOUNT,EXIT
 }
