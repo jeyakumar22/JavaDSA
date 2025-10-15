@@ -6,6 +6,7 @@ public class BankManagement {
     static Scanner ip = new Scanner(System.in);
     static List<Account> accountList = new ArrayList<>();
     static HashMap<Integer, Account> customerMap = new HashMap<>();
+    static int nextId =1;
 
     public static void main(String[] args) {
         BankManagement bm = new BankManagement();
@@ -27,7 +28,7 @@ public class BankManagement {
                 case CREATEACCOUNT:
                     Account acnt = bm.createAccount();
                     System.out.println("Account created successfully!");
-                    System.out.println("Your Account type and your Id: " + acnt.getAccountType() + acnt.getCustomerId());
+                    System.out.println("Your Account type and your Id: " + acnt.getAccountType() +" "+ acnt.getCustomerId());
                     accountList.add(acnt);
                     customerMap.put(acnt.getCustomerId(), acnt);
                     break;
@@ -60,9 +61,8 @@ public class BankManagement {
 
     Account createAccount() {
         System.out.println("\n----- Create Account -----");
-        System.out.print("Enter customer ID: ");
-        int customerId = ip.nextInt();
-        System.out.print("Enter cccount number: ");
+        System.out.print("Enter Acccount number: ");
+        int customerId =nextId++;
         int accountNo = ip.nextInt();
         ip.nextLine();
         System.out.print("Enter customer name: ");
@@ -72,8 +72,6 @@ public class BankManagement {
 
         System.out.println("Select Account Type (1-Savings, 2-Current): ");
         int type = ip.nextInt();
-
-
         if (type == 1) {
             System.out.print("Enter Interest Rate: ");
             double interest = ip.nextDouble();
