@@ -7,6 +7,7 @@ import BankProject.BankManagement.Customer.Customer;
 import BankProject.BankManagement.EnumConstants.AccountType;
 import BankProject.BankManagement.EnumConstants.Methodoption;
 import BankProject.BankManagement.EnumConstants.Options;
+import BankProject.BankManagement.EnumConstants.TransactionType;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -165,7 +166,10 @@ public class BankManagement {
             Methodoption operation = Methodoption.values()[opChoice - 1];
 
             switch (operation) {
-                case DEPOSIT:
+                case TRANSACTION:
+                    handleSavingTransaction(acc);
+                    break;
+                /*case DEPOSIT:
                     System.out.print("Enter amount: ");
                     acc.deposit(ip.nextInt());
                     break;
@@ -177,7 +181,7 @@ public class BankManagement {
 
                 case SPECIAL:
                     acc.applyYearlyInterest();
-                    break;
+                    break;*/
 
                 case CHECKBALANCE:
                     System.out.print("Your Account Balance" + (acc.getBalance()));
@@ -195,6 +199,40 @@ public class BankManagement {
 
     }
 
+    private void handleSavingTransaction(Saving acc) {
+        System.out.println("\nChoose Operation:");
+        System.out.println("1. Deposit\n2. Withdraw\n3. Check Balance\n4. AddInterest\n5. Exit");
+        int opChoice = ip.nextInt();
+        while (true) {
+            if (opChoice <= 0 || opChoice > TransactionType.values().length) {
+                System.out.println("Invalid choice, try again!");
+                continue;
+            }
+            TransactionType operation = TransactionType.values()[opChoice - 1];
+            switch (operation) {
+                case DEPOSIT:
+                    System.out.print("Enter amount: ");
+                    acc.deposit(ip.nextInt());
+                    break;
+
+                case WITHDRAW:
+                    System.out.print("Enter amount: ");
+                    acc.withdraw(ip.nextInt());
+                    break;
+
+                case TRANSFER:
+                    break;
+
+                case SPECIAL:
+                    acc.applyYearlyInterest();
+                    break;
+
+                case EXIT:
+                    return;
+            }
+        }
+    }
+
     void handleCurrentAccountOperations(Current acc) {
         while (true) {
             System.out.println("\nChoose Operation:");
@@ -208,7 +246,10 @@ public class BankManagement {
             Methodoption operation = Methodoption.values()[opChoice - 1];
 
             switch (operation) {
-                case DEPOSIT:
+                case TRANSACTION:
+                    handleCurrentTransaction(acc);
+                    break;
+                /*case DEPOSIT:
                     System.out.print("Enter amount: ");
                     acc.deposit(ip.nextInt());
                     break;
@@ -226,7 +267,7 @@ public class BankManagement {
                     System.out.print("Your Account Balance" +  acc.getOverdraftRemainingLimit());
 
                     break;
-
+*/
                 case EXIT:
                     System.out.println("Returning to main menu...");
                     return; // exit the current method or loop
@@ -236,6 +277,40 @@ public class BankManagement {
                     break;
             }
 
+        }
+    }
+
+    private void handleCurrentTransaction(Current acc) {
+        System.out.println("\nChoose Operation:");
+        System.out.println("1. Deposit\n2. Withdraw\n3. Check Balance\n4. AddInterest\n5. Exit");
+        int opChoice = ip.nextInt();
+        while (true) {
+            if (opChoice <= 0 || opChoice > TransactionType.values().length) {
+                System.out.println("Invalid choice, try again!");
+                continue;
+            }
+            TransactionType operation = TransactionType.values()[opChoice - 1];
+            switch (operation) {
+                case DEPOSIT:
+                    System.out.print("Enter amount: ");
+                    acc.deposit(ip.nextInt());
+                    break;
+
+                case WITHDRAW:
+                    System.out.print("Enter amount: ");
+                    acc.withdraw(ip.nextInt());
+                    break;
+
+                case TRANSFER:
+                    break;
+
+                case SPECIAL:
+                    System.out.print("Your Account Balance" +  acc.getOverdraftRemainingLimit());
+                    break;
+
+                case EXIT:
+                    break;
+            }
         }
     }
 
