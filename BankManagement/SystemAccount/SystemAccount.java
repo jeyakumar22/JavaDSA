@@ -1,19 +1,19 @@
 package BankProject.BankManagement.SystemAccount;
 
 public class SystemAccount {
-    // Singleton instance
     private static SystemAccount instance;
 
-    private final int accountId = 0; // Fixed system account ID
+    private final int accountId ;
+    private final int accountNumber;
     private final String accountName = "SBI Bank System Account";
     private double balance;
 
-    // Private constructor to prevent instantiation
     private SystemAccount() {
-        this.balance = 1000000.0; // Initial system balance - can be any large number
+        this.accountId = 101;
+        this.accountNumber = 222;
+        this.balance = 0;
     }
 
-    // Public method to get the singleton instance
     public static SystemAccount getInstance() {
         if (instance == null) {
             instance = new SystemAccount();
@@ -21,17 +21,26 @@ public class SystemAccount {
         return instance;
     }
 
-    // Getters
     public int getAccountId() { return accountId; }
-    public String getAccountName() { return accountName; }
     public double getBalance() { return balance; }
+    public int getAccountNumber() {
+        return accountNumber;
+    }
 
-    public void setBalance(double balance) {
-        this.balance = balance;
+    public void debit(double amount) {
+        if (amount > 0 ) {
+            balance -= amount;
+            System.out.println("Debited: " + amount +"from bank");
+        }
     }
 
     @Override
     public String toString() {
-        return "System Account [ID: " + accountId + ", Name: " + accountName + ", Balance: " + balance + "]";
+        return "SystemAccount{" +
+                "accountId=" + accountId +
+                ", accountNumber=" + accountNumber +
+                ", accountName='" + accountName + '\'' +
+                ", balance=" + balance +
+                '}';
     }
 }

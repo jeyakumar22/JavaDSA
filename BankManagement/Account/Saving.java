@@ -32,10 +32,11 @@ public class Saving extends Account {
         }
     }
 
-    public void applyYearlyInterest() {
+    public double applyYearlyInterest() {
         double yearlyRate = InterestRate / 100;
         double interest = getBalance() * yearlyRate;
         setBalance(getBalance() + interest);
         System.out.printf(" Yearly Interest Applied: ₹%.2f | New Balance: ₹%.2f\n", interest, getBalance());
+        return interest;
     }
 }

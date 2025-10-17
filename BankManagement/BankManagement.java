@@ -8,7 +8,10 @@ import BankProject.BankManagement.EnumConstants.AccountType;
 import BankProject.BankManagement.EnumConstants.Methodoption;
 import BankProject.BankManagement.EnumConstants.Options;
 import BankProject.BankManagement.EnumConstants.TransactionType;
+import BankProject.BankManagement.SystemAccount.SystemAccount;
+import BankProject.BankManagement.Transaction.Transaction;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -18,12 +21,17 @@ public class BankManagement {
     static Scanner ip = new Scanner(System.in);
     static List<Account> accountList = new ArrayList<>();
     static List<Customer> customersList = new ArrayList<>();
-    //static HashMap<Integer, Account> customerMap = new HashMap<>();
+    static List<Transaction> transactionList = new ArrayList<>();
+    //customer id
     static int nextId =1;
 
     public static void main(String[] args) {
-        System.out.println(accountList.size());
         BankManagement bm = new BankManagement();
+        initialStage(bm);
+    }
+    static void initialStage(BankManagement bm){
+        SystemAccount sysAcc = SystemAccount.getInstance();
+        System.out.println(sysAcc);
         Options[] Options = BankProject.BankManagement.EnumConstants.Options.values();
         while (true) {
             System.out.println("\n--- Bank Menu ---");
@@ -50,6 +58,7 @@ public class BankManagement {
                     }
                     Account acnt = bm.createAccount(customer.getCustomerId(),customer.getCustomerName());
                     if(acnt != null){
+                        processInitialBalance(acnt);
                         System.out.println("Account created successfully\n");
                         System.out.println("Account Details\n" + acnt);
                         accountList.add(acnt);
@@ -86,6 +95,34 @@ public class BankManagement {
                     System.out.println("Wrong Choice");
                     return;
             }
+        }
+    }
+
+    private static void processInitialBalance(Account account) {
+        if (account.getBalance() > 0) {
+            SystemAccount systemAcc = SystemAccount.getInstance();
+
+            systemAcc.debit(account.getBalance());
+
+            Transaction initialDebit = new Transaction(
+                    TransactionType.WITHDRAW,
+                    account.getBalance(),
+                    systemAcc.getAccountNumber(),  // from system
+                    account.getAccntNo(),
+                    false
+            );Transaction initialCredit = new Transaction(
+                    TransactionType.DEPOSIT,
+                    account.getBalance(),
+                    systemAcc.getAccountNumber(),  // from system
+                    account.getAccntNo(),
+                    true
+            );
+            transactionList.add(initialDebit);
+            transactionList.add(initialCredit);
+            System.out.println(initialDebit);
+            System.out.println(initialCredit);
+            System.out.println("✓ Initial Balance processed: ₹" + account.getBalance());
+            transactionList.forEach(transaction -> System.out.println(transaction));
         }
     }
 
@@ -156,7 +193,7 @@ public class BankManagement {
     void handleSavingAccountOperations(Saving acc) {
         while (true) {
             System.out.println("\nChoose Operation:");
-            System.out.println("1. Deposit\n2. Withdraw\n3. Check Balance\n4. AddInterest\n5. Exit");
+            System.out.println("1.Transaction \n2.Checkbalance \n3.Exit");
             int opChoice = ip.nextInt();
 
             if (opChoice <= 0 || opChoice > Methodoption.values().length) {
@@ -169,19 +206,6 @@ public class BankManagement {
                 case TRANSACTION:
                     handleSavingTransaction(acc);
                     break;
-                /*case DEPOSIT:
-                    System.out.print("Enter amount: ");
-                    acc.deposit(ip.nextInt());
-                    break;
-
-                case WITHDRAW:
-                    System.out.print("Enter amount: ");
-                    acc.withdraw(ip.nextInt());
-                    break;
-
-                case SPECIAL:
-                    acc.applyYearlyInterest();
-                    break;*/
 
                 case CHECKBALANCE:
                     System.out.print("Your Account Balance" + (acc.getBalance()));
@@ -189,7 +213,7 @@ public class BankManagement {
 
                 case EXIT:
                     System.out.println("Returning to main menu...");
-                    return; // exit the current method or loop
+                    return;
 
                 default:
                     System.out.println("Invalid option! Please try again.");
@@ -199,9 +223,9 @@ public class BankManagement {
 
     }
 
-    private void handleSavingTransaction(Saving acc) {
+  /*  private void handleSavingTransaction(Saving acc) {
         System.out.println("\nChoose Operation:");
-        System.out.println("1. Deposit\n2. Withdraw\n3. Check Balance\n4. AddInterest\n5. Exit");
+        System.out.println("1. Deposit\n2. Withdraw\n3.Transfer\n 4.AddInterest\n5. Exit");
         int opChoice = ip.nextInt();
         while (true) {
             if (opChoice <= 0 || opChoice > TransactionType.values().length) {
@@ -212,31 +236,204 @@ public class BankManagement {
             switch (operation) {
                 case DEPOSIT:
                     System.out.print("Enter amount: ");
-                    acc.deposit(ip.nextInt());
+                    double depositAmount = ip.nextDouble();
+                    acc.deposit((int)depositAmount);
+                    Transaction depositTx = new Transaction(
+                            TransactionType.DEPOSIT,
+                            depositAmount,
+                            SystemAccount.getInstance().getAccountNumber(),
+                            acc.getAccntNo(),
+                            true
+                    );
+                    SystemAccount.getInstance().debit(depositAmount);
+                    transactionList.add(depositTx);
+                    System.out.println("Deposit transaction recorded: " + depositTx);
                     break;
 
                 case WITHDRAW:
                     System.out.print("Enter amount: ");
-                    acc.withdraw(ip.nextInt());
+                    int withdrawAmount = ip.nextInt();
+                    acc.withdraw(withdrawAmount);
+                    Transaction withdrawTx = new Transaction(
+                            TransactionType.WITHDRAW,
+                            withdrawAmount,
+                            acc.getAccntNo(),-1,
+                            //SystemAccount.getInstance().getAccountId(),
+                            false
+                    );
+                    transactionList.add(withdrawTx);
+                    System.out.println("Withdrawal transaction recorded: " + withdrawTx);
                     break;
 
                 case TRANSFER:
+                    System.out.print("Enter recipient account number: ");
+                    int toAccountNo = ip.nextInt();
+
+                    System.out.print("Enter transfer amount: ");
+                    int transferAmount = ip.nextInt();
+
+                    Account toAccount = findAccountByNumber(toAccountNo);
+                    if (toAccount == null) {
+                        System.out.println("Recipient account not found!");
+                        return;
+                    }
+
+
+                    acc.withdraw(transferAmount);
+                    toAccount.deposit(transferAmount);
+
+
+                    Transaction transferTx = new Transaction(
+                            TransactionType.TRANSFER,
+                            transferAmount,
+                            acc.getAccntNo(),     // from sender
+                            toAccount.getAccntNo(),       // to receiver
+                            false
+                    );
+                    transactionList.add(transferTx);
+                    System.out.println("Transfer successful: " + transferTx);
                     break;
 
                 case SPECIAL:
-                    acc.applyYearlyInterest();
+                    double interestAmount = acc.applyYearlyInterest();
+                    Transaction interestTx = new Transaction(
+                            TransactionType.SPECIAL,
+                            interestAmount,
+                            SystemAccount.getInstance().getAccountNumber(),
+                            acc.getAccntNo(),
+                            true
+                    );
+                    SystemAccount.getInstance().debit(interestAmount);
+                    transactionList.add(interestTx);
+                    System.out.println("Interest transaction recorded: " + interestTx);
                     break;
 
                 case EXIT:
                     return;
             }
         }
+    }*/
+  private void handleSavingTransaction(Saving acc) {
+      while (true) {
+          System.out.println("\nChoose Operation:");
+          System.out.println("1. Deposit\n2. Withdraw\n3. Transfer\n4. AddInterest\n5. Exit");
+          int opChoice = ip.nextInt();
+
+          if (opChoice == 5) {
+              System.out.println("Returning to main menu...");
+              return;
+          }
+
+          if (opChoice <= 0 || opChoice > 5) {
+              System.out.println("Invalid choice, try again!");
+              continue;
+          }
+
+          TransactionType operation;
+          switch (opChoice) {
+              case 1: operation = TransactionType.DEPOSIT; break;
+              case 2: operation = TransactionType.WITHDRAW; break;
+              case 3: operation = TransactionType.TRANSFER; break;
+              case 4: operation = TransactionType.INTEREST; break;
+              default: continue;
+          }
+
+          switch (operation) {
+              case DEPOSIT:
+                  System.out.print("Enter amount: ");
+                  double depositAmount = ip.nextDouble();
+                  acc.deposit((int) depositAmount);
+
+                  Transaction depositTx = new Transaction(
+                          TransactionType.DEPOSIT,
+                          depositAmount,
+                          SystemAccount.getInstance().getAccountNumber(),
+                          acc.getAccntNo(),
+                          true
+                  );
+                  SystemAccount.getInstance().debit(depositAmount);
+                  transactionList.add(depositTx);
+                  System.out.println("Deposit transaction recorded: " + depositTx);
+                  transactionList.forEach(transaction -> System.out.println(transaction));
+                  System.out.println(SystemAccount.getInstance().getBalance());
+                  break;
+
+              case WITHDRAW:
+                  System.out.print("Enter amount: ");
+                  int withdrawAmount = ip.nextInt();
+                  acc.withdraw(withdrawAmount);
+
+                  Transaction withdrawTx = new Transaction(
+                          TransactionType.WITHDRAW,
+                          withdrawAmount,
+                          acc.getAccntNo(),
+                          acc.getAccntNo(),
+                          false
+                  );
+
+                  transactionList.add(withdrawTx);
+                  System.out.println("Withdrawal transaction recorded: " + withdrawTx);
+                  transactionList.forEach(transaction -> System.out.println(transaction));
+                  System.out.println(SystemAccount.getInstance().getBalance());
+                  break;
+
+              case TRANSFER:
+                  System.out.print("Enter recipient account number: ");
+                  int toAccountNo = ip.nextInt();
+                  System.out.print("Enter transfer amount: ");
+                  int transferAmount = ip.nextInt();
+
+                  Account toAccount = findAccountByNumber(toAccountNo);
+                  if (toAccount == null) {
+                      System.out.println("Recipient account not found!");
+                      continue;
+                  }
+
+                  // Perform transfer
+                  acc.withdraw(transferAmount);
+                  toAccount.deposit(transferAmount);
+
+                  // Create transfer transaction
+                  Transaction transferTx = new Transaction(
+                          TransactionType.TRANSFER,
+                          transferAmount,
+                          acc.getAccntNo(),     // from sender
+                          toAccount.getAccntNo(), // to receiver
+                          false                 // debit for sender
+                  );
+                  transactionList.add(transferTx);
+                  System.out.println("Transfer successful: " + transferTx);
+                  transactionList.forEach(transaction -> System.out.println(transaction));
+                  System.out.println(SystemAccount.getInstance().getBalance());
+                  break;
+
+              case INTEREST:
+                  double interestAmount = acc.applyYearlyInterest();
+                  Transaction interestTx = new Transaction(
+                          TransactionType.INTEREST,
+                          interestAmount,
+                          SystemAccount.getInstance().getAccountNumber(),
+                          acc.getAccntNo(),
+                          true
+                  );
+                  SystemAccount.getInstance().debit(interestAmount);
+                  transactionList.add(interestTx);
+                  System.out.println("Interest transaction recorded: " + interestTx);
+                  transactionList.forEach(transaction -> System.out.println(transaction));
+                  System.out.println(SystemAccount.getInstance().getBalance());
+                  break;
+          }
+      }
+  }
+
+    private Account findAccountByNumber(int toAccountNo) {
+        return accountList.stream().filter(account -> account.getAccntNo() == toAccountNo).findFirst().orElse(null);
     }
 
     void handleCurrentAccountOperations(Current acc) {
         while (true) {
             System.out.println("\nChoose Operation:");
-            System.out.println("1. Deposit\n2. Withdraw\n3. Check Balance\n4.CheckRemainingLimit\n5. Exit");
+            System.out.println("1.Transaction \n2.Checkbalance \n3.Exit");
             int opChoice = ip.nextInt();
 
             if (opChoice <= 0 || opChoice > Methodoption.values().length) {
@@ -249,28 +446,12 @@ public class BankManagement {
                 case TRANSACTION:
                     handleCurrentTransaction(acc);
                     break;
-                /*case DEPOSIT:
-                    System.out.print("Enter amount: ");
-                    acc.deposit(ip.nextInt());
-                    break;
-
-                case WITHDRAW:
-                    System.out.print("Enter amount: ");
-                    acc.withdraw(ip.nextInt());
-                    break;
-
                 case CHECKBALANCE:
                     System.out.print("Your Account Balance" + (acc.getBalance()));
                     break;
-
-                case SPECIAL:
-                    System.out.print("Your Account Balance" +  acc.getOverdraftRemainingLimit());
-
-                    break;
-*/
                 case EXIT:
                     System.out.println("Returning to main menu...");
-                    return; // exit the current method or loop
+                    return;
 
                 default:
                     System.out.println("Invalid option! Please try again.");
@@ -280,9 +461,9 @@ public class BankManagement {
         }
     }
 
-    private void handleCurrentTransaction(Current acc) {
+    /*private void handleCurrentTransaction(Current acc) {
         System.out.println("\nChoose Operation:");
-        System.out.println("1. Deposit\n2. Withdraw\n3. Check Balance\n4. AddInterest\n5. Exit");
+        System.out.println("1. Deposit\n2. Withdraw\n3.Transfer \n4.CheckRemainingLimit\n5. Exit");
         int opChoice = ip.nextInt();
         while (true) {
             if (opChoice <= 0 || opChoice > TransactionType.values().length) {
@@ -293,161 +474,138 @@ public class BankManagement {
             switch (operation) {
                 case DEPOSIT:
                     System.out.print("Enter amount: ");
-                    acc.deposit(ip.nextInt());
+                    double depositAmount = ip.nextDouble();
+                    acc.deposit((int)depositAmount);
+                    Transaction depositTx = new Transaction(
+                            TransactionType.DEPOSIT,
+                            depositAmount,
+                            SystemAccount.getInstance().getAccountId(),
+                            acc.getAccntNo(),
+                            true
+                    );
+                    SystemAccount.getInstance().debit(depositAmount);
+                    transactionList.add(depositTx);
+                    System.out.println("Deposit transaction recorded: " + depositTx);
                     break;
 
                 case WITHDRAW:
                     System.out.print("Enter amount: ");
-                    acc.withdraw(ip.nextInt());
+                    int withdrawAmount = ip.nextInt();
+                    acc.withdraw(withdrawAmount);
+                    Transaction withdrawTx = new Transaction(
+                            TransactionType.WITHDRAW,
+                            withdrawAmount,
+                            acc.getAccntNo(),-1,
+                            //SystemAccount.getInstance().getAccountId(),
+                            false
+                    );
+                    transactionList.add(withdrawTx);
+                    System.out.println("Withdrawal transaction recorded: " + withdrawTx);
                     break;
 
                 case TRANSFER:
                     break;
 
                 case SPECIAL:
-                    System.out.print("Your Account Balance" +  acc.getOverdraftRemainingLimit());
                     break;
 
                 case EXIT:
+                    return;
+            }
+        }
+    }*/
+    private void handleCurrentTransaction(Current acc) {
+        while (true) {
+            System.out.println("\nChoose Operation:");
+            System.out.println("1. Deposit\n2. Withdraw\n3. Transfer\n4. CheckRemainingLimit\n5. Exit");
+            int opChoice = ip.nextInt();
+
+
+            if (opChoice == 5) {
+                System.out.println("Returning to main menu...");
+                return;
+            }
+
+            if (opChoice == 4) {
+                System.out.println("Remaining Overdraft Limit: ₹" + acc.getOverdraftRemainingLimit());
+                continue;
+            }
+
+            if (opChoice <= 0 || opChoice > 3) {
+                System.out.println("Invalid choice, try again!");
+                continue;
+            }
+
+            TransactionType operation;
+            switch (opChoice) {
+                case 1: operation = TransactionType.DEPOSIT; break;
+                case 2: operation = TransactionType.WITHDRAW; break;
+                case 3: operation = TransactionType.TRANSFER; break;
+                default: continue;
+            }
+
+            switch (operation) {
+                case DEPOSIT:
+                    System.out.print("Enter amount: ");
+                    double depositAmount = ip.nextDouble();
+                    acc.deposit((int) depositAmount);
+
+                    Transaction depositTx = new Transaction(
+                            TransactionType.DEPOSIT,
+                            depositAmount,
+                            SystemAccount.getInstance().getAccountNumber(),
+                            acc.getAccntNo(),
+                            true
+                    );
+                    SystemAccount.getInstance().debit(depositAmount);
+                    transactionList.add(depositTx);
+                    System.out.println("Deposit transaction recorded: " + depositTx);
+                    break;
+
+                case WITHDRAW:
+                    System.out.print("Enter amount: ");
+                    int withdrawAmount = ip.nextInt();
+                    acc.withdraw(withdrawAmount);
+
+                    Transaction withdrawTx = new Transaction(
+                            TransactionType.WITHDRAW,
+                            withdrawAmount,
+                            acc.getAccntNo(),
+                            SystemAccount.getInstance().getAccountNumber(),
+                            false
+                    );
+
+                    transactionList.add(withdrawTx);
+                    System.out.println("Withdrawal transaction recorded: " + withdrawTx);
+                    break;
+
+                case TRANSFER:
+                    System.out.print("Enter recipient account number: ");
+                    int toAccountNo = ip.nextInt();
+                    System.out.print("Enter transfer amount: ");
+                    int transferAmount = ip.nextInt();
+
+                    Account toAccount = findAccountByNumber(toAccountNo);
+                    if (toAccount == null) {
+                        System.out.println("Recipient account not found!");
+                        continue;
+                    }
+
+
+                    acc.withdraw(transferAmount);
+                    toAccount.deposit(transferAmount);
+
+                    Transaction transferTx = new Transaction(
+                            TransactionType.TRANSFER,
+                            transferAmount,
+                            acc.getAccntNo(),
+                            toAccount.getAccntNo(),
+                            false
+                    );
+                    transactionList.add(transferTx);
+                    System.out.println("Transfer successful: " + transferTx);
                     break;
             }
         }
     }
-
 }
-
-
-/*
-abstract class Account {
-    private final int  customerId;
-    private final int accntNo;
-    private String accountHolderName;
-    private double balance;
-    private AccountType accountType;
-
-    public Account(int id, int accntNo, String accountHolderName, double balance, AccountType at) {
-        this.customerId = id;
-        this.accntNo = accntNo;
-        this.accountHolderName = accountHolderName;
-        this.balance = balance;
-        this.accountType = at;
-    }
-
-    public void setBalance(double balance) {
-        this.balance = balance;
-    }
-
-    public double getBalance() {
-        return balance;
-    }
-
-    public int getCustomerId() {
-        return customerId;
-    }
-
-    public AccountType getAccountType() {
-        return accountType;
-    }
-
-    public void getDetails() {
-
-        System.out.println("Account Type : " + accountType);
-        System.out.println("Account NO : " + accntNo);
-        System.out.println("Account Name : " + accountHolderName);
-        System.out.println("Account Balance : " + balance);
-    }
-    public String toString() {
-        return "Customer ID : " + customerId +
-                "\nAccount Type: " + accountType +
-                "\nAccount No: " + accntNo +
-                "\nAccount Holder: " + accountHolderName +
-                "\nBalance: " + String.format("%.2f", balance) +"\n";
-    }
-
-    abstract void withdraw(int amount);
-    abstract void deposit(int amount);
-
-}
-
-class Saving extends Account {
-    private double InterestRate;
-
-    public Saving(int id, int accntNo, String accountHolderName, double Balance, double InterestRate, AccountType at) {
-        super(id, accntNo, accountHolderName, Balance, at);
-        this.InterestRate = InterestRate;
-    }
-
-
-    @Override
-    void withdraw(int amount) {
-        if (getBalance() >= amount) {
-            setBalance(getBalance() - amount);
-            System.out.printf("Withdraw of %d Rs Successful .Balance %.2f", amount, getBalance());
-        } else {
-            System.out.println("Not Enough Money");
-        }
-    }
-
-    @Override
-    void deposit(int amount) {
-        if (amount > 0) {
-            setBalance(getBalance() + amount);
-            System.out.printf("Deposit of %d Rs Successful .Balance %.2f", amount, getBalance());
-        } else {
-            System.out.println("Amount Not Valid Enter a Valid Money");
-
-        }
-    }
-
-    public void applyYearlyInterest() {
-        double yearlyRate = InterestRate / 100;
-        double interest = getBalance() * yearlyRate;
-        setBalance(getBalance() + interest);
-        System.out.printf(" Yearly Interest Applied: ₹%.2f | New Balance: ₹%.2f\n", interest, getBalance());
-    }
-}
-
-class Current extends Account {
-    private double overDraftLimit;
-    private double remainingLimit;
-
-    public Current(int id, int accntNo, String accountHolderName, double Balance, double overDraftLimit, AccountType at) {
-        super(id, accntNo, accountHolderName, Balance, at);
-        this.overDraftLimit = overDraftLimit;
-        this.remainingLimit = overDraftLimit;
-    }
-
-
-    @Override
-    void withdraw(int amount) {
-        if (getBalance() + overDraftLimit >= amount) {
-            setBalance((getBalance()) - amount);
-            if (getBalance() < 0) {
-                double overdraftUsed = -getBalance();
-                setRemainingLimit(overDraftLimit - overdraftUsed);
-            }
-            System.out.printf("Withdraw of %d Rs Successful.. Balance %f", amount, getBalance());
-        } else {
-            System.out.println("Not Enough Money");
-        }
-    }
-
-    @Override
-    void deposit(int amount) {
-        if (amount > 0) {
-            setBalance(getBalance() + amount);
-            System.out.printf("Deposit of %d Rs Successful .Balance %.2f", amount, getBalance());
-        } else {
-            System.out.println("Amount Not Valid Enter a Valid Money");
-        }
-    }
-
-    void setRemainingLimit(double remain) {
-        this.remainingLimit = remain;
-    }
-
-    double getOverdraftRemainingLimit() {
-        return remainingLimit;
-    }
-}
-*/

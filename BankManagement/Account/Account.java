@@ -29,6 +29,10 @@ public abstract class Account {
         return customerId;
     }
 
+    public int getAccntNo() {
+        return accntNo;
+    }
+
     public AccountType getAccountType() {
         return accountType;
     }
@@ -49,7 +53,7 @@ public abstract class Account {
     }
 
     abstract void withdraw(int amount);
-    abstract void deposit(int amount);
+    public abstract void deposit(int amount);
 
 }
 
